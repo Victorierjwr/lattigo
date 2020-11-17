@@ -1,10 +1,10 @@
 package ring
 
-
-import(
-	"math/bits"
-	"github.com/ldsec/lattigo/v2/utils"
+import (
 	"fmt"
+	"math/bits"
+
+	"github.com/ldsec/lattigo/v2/utils"
 )
 
 // IsPrime applies a Miller-Rabin test on the given uint64 variable, returning true if the input is probably prime, and false otherwise.
@@ -68,7 +68,7 @@ func IsPrime(num uint64) bool {
 	return true
 }
 
-// GenerateNTTPrimes generates n NthRoot NTT friendly primes given logQ = size of the primes. 
+// GenerateNTTPrimes generates n NthRoot NTT friendly primes given logQ = size of the primes.
 // It will return all the appropriate primes, up to the number of n, with the
 // best available deviation from the base power of 2 for the given n.
 func GenerateNTTPrimes(logQ, NthRoot, n uint64) (primes []uint64) {
@@ -86,7 +86,7 @@ func GenerateNTTPrimes(logQ, NthRoot, n uint64) (primes []uint64) {
 
 // NextNTTPrime returns the next NthRoot NTT prime after q.
 // The input q must be itself an NTT prime for the given NthRoot.
-func NextNTTPrime(q, NthRoot uint64) (qNext uint64, err error){
+func NextNTTPrime(q, NthRoot uint64) (qNext uint64, err error) {
 
 	qNext = q + NthRoot
 
@@ -102,9 +102,9 @@ func NextNTTPrime(q, NthRoot uint64) (qNext uint64, err error){
 	return qNext, nil
 }
 
-// NextNTTPrime returns the previous NthRoot NTT prime after q.
+// PreviousNTTPrime returns the previous NthRoot NTT prime after q.
 // The input q must be itself an NTT prime for the given NthRoot.
-func PreviousNTTPrime(q, NthRoot uint64) (qPrev uint64, err error){
+func PreviousNTTPrime(q, NthRoot uint64) (qPrev uint64, err error) {
 
 	if q < NthRoot {
 		return 0, fmt.Errorf("Previous NTT prime is smaller than NthRoot")
@@ -149,7 +149,7 @@ func GenerateNTTPrimesQ(logQ, NthRoot, levels uint64) (primes []uint64) {
 
 		if checkfornextprime {
 
-			if nextPrime > 0xffffffffffffffff - NthRoot {
+			if nextPrime > 0xffffffffffffffff-NthRoot {
 
 				checkfornextprime = false
 

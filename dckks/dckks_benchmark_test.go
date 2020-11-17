@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ldsec/lattigo/v2/ckks"
+	"github.com/ldsec/lattigo/v2/drlwe"
 	"github.com/ldsec/lattigo/v2/ring"
 )
 
@@ -45,7 +46,7 @@ func benchPublicKeyGen(testCtx *testContext, b *testing.B) {
 	type Party struct {
 		*CKGProtocol
 		s  *ring.Poly
-		s1 CKGShare
+		s1 *drlwe.CKGShare
 	}
 
 	p := new(Party)
