@@ -217,7 +217,7 @@ func testRelinKeyGen(testCtx *testContext, t *testing.T) {
 
 		//ROUND 2
 		for i, p := range rkgParties {
-			p.GenShareRoundTwo(P0.share1, p.ephSk, p.sk, crp, p.share2)
+			p.GenShareRoundTwo(p.ephSk, p.sk, P0.share1, crp, p.share2)
 			if i > 0 {
 				P0.AggregateShares(p.share2, P0.share2, P0.share2)
 			}
@@ -909,7 +909,7 @@ func testMarshallingRelin(testCtx *testContext, t *testing.T) {
 		// 	require.Equal(t, a.Coeffs[:moduli], b.Coeffs[:moduli])
 		// }
 
-		rlk.GenShareRoundTwo(r1, u, testCtx.sk0.Get(), crp, r2)
+		rlk.GenShareRoundTwo(u, testCtx.sk0.Get(), r1, crp, r2)
 
 		data, err = r2.MarshalBinary()
 		require.NoError(t, err)
