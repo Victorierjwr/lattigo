@@ -72,8 +72,8 @@ func main() {
 		rlkEphemSk *ring.Poly
 
 		ckgShare    *drlwe.CKGShare
-		rkgShareOne dbfv.RKGShare
-		rkgShareTwo dbfv.RKGShare
+		rkgShareOne *drlwe.RKGShare
+		rkgShareTwo *drlwe.RKGShare
 		rtgShare    dbfv.RTGShare
 		cksShare    dbfv.CKSShare
 
@@ -105,30 +105,24 @@ func main() {
 
 	// Instantiation of each of the protocols needed for the PIR example
 	ckg := dbfv.NewCKGProtocol(params)       // Public key generation
-	rkg := dbfv.NewEkgProtocol(params)       // Relineariation key generation
+	rkg := dbfv.NewRKGProtocol(params)       // Relineariation key generation
 	rtg := dbfv.NewRotKGProtocol(params)     // Rotation keys generation
 	cks := dbfv.NewCKSProtocol(params, 3.19) // Collective public-key re-encryption
 
 	kgen := bfv.NewKeyGenerator(params)
-
-	ternarySamplerMontgomery := ring.NewTernarySampler(lattigoPRNG, ringQP, 0.5, true)
 
 	// Create each party, and allocate the memory for all the shares that the protocols will need
 	P := make([]*party, N, N)
 	for i := range P {
 		pi := &party{}
 		pi.sk = kgen.GenSecretKey()
-
-		pi.rlkEphemSk = ternarySamplerMontgomery.ReadNew()
-		ringQP.NTT(pi.rlkEphemSk, pi.rlkEphemSk)
-
 		pi.input = make([]uint64, 1<<params.LogN(), 1<<params.LogN())
 		for j := range pi.input {
 			pi.input[j] = uint64(i)
 		}
 
 		pi.ckgShare = ckg.AllocateShares()
-		pi.rkgShareOne, pi.rkgShareTwo = rkg.AllocateShares()
+		pi.rlkEphemSk, pi.rkgShareOne, pi.rkgShareTwo = rkg.AllocateShares()
 		pi.rtgShare = rtg.AllocateShare()
 		pi.cksShare = cks.AllocateShare()
 
@@ -163,15 +157,15 @@ func main() {
 	l.Println("> RKG Phase")
 	elapsedRKGParty = runTimedParty(func() {
 		for _, pi := range P {
-			rkg.GenShareRoundOne(pi.rlkEphemSk, pi.sk.Get(), crp, pi.rkgShareOne)
+			rkg.GenShareRoundOne(pi.sk.Get(), crp, pi.rlkEphemSk, pi.rkgShareOne)
 		}
 	}, N)
 
-	rkgCombined1, rkgCombined2 := rkg.AllocateShares()
+	_, rkgCombined1, rkgCombined2 := rkg.AllocateShares()
 
 	elapsedRKGCloud = runTimed(func() {
 		for _, pi := range P {
-			rkg.AggregateShareRoundOne(pi.rkgShareOne, rkgCombined1, rkgCombined1)
+			rkg.AggregateShares(pi.rkgShareOne, rkgCombined1, rkgCombined1)
 		}
 	})
 
@@ -184,9 +178,9 @@ func main() {
 	rlk := bfv.NewRelinKey(params, 1)
 	elapsedRKGCloud += runTimed(func() {
 		for _, pi := range P {
-			rkg.AggregateShareRoundTwo(pi.rkgShareTwo, rkgCombined2, rkgCombined2)
+			rkg.AggregateShares(pi.rkgShareTwo, rkgCombined2, rkgCombined2)
 		}
-		rkg.GenRelinearizationKey(rkgCombined1, rkgCombined2, rlk)
+		rkg.GenBFVRelinearizationKey(rkgCombined1, rkgCombined2, rlk)
 	})
 
 	l.Printf("\tdone (cloud: %s, party: %s)\n", elapsedRKGCloud, elapsedRKGParty)

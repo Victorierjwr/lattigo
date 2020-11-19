@@ -8,6 +8,7 @@ import (
 	"github.com/ldsec/lattigo/v2/utils"
 )
 
+// RelinearizationKeyGenerator is an interface describing the local steps of a generic RLWE RKG protocol
 type RelinearizationKeyGenerator interface {
 	AllocateShares() (ephKey ring.Poly, r1 RKGShare, r2 RKGShare)
 	GenShareRoundOne(sk *ring.Poly, crp []*ring.Poly, ephKeyOut *ring.Poly, shareOut RKGShare)
@@ -16,6 +17,7 @@ type RelinearizationKeyGenerator interface {
 	GenRelinearizationKey(round1 RKGShare, round2 RKGShare, evalKeyOut [][2]*ring.Poly)
 }
 
+// RKGProtocol is the structure storing the parameters and and precomputations for the collective relinearization key generation protocol.
 type RKGProtocol struct {
 	ringQModCount   uint64
 	alpha           uint64
@@ -29,10 +31,12 @@ type RKGProtocol struct {
 	tmpPoly2 *ring.Poly
 }
 
+// RKGShare is a share in the RKG protocol
 type RKGShare struct {
 	value [][2]*ring.Poly
 }
 
+// NewRKGProtocol creates a new RKG protocol struct
 func NewRKGProtocol(n uint64, q, p []uint64, ephSkPr, sigma float64) *RKGProtocol {
 	rkg := new(RKGProtocol)
 	rkg.ringQModCount = uint64(len(q))
@@ -83,6 +87,10 @@ func (ekg *RKGProtocol) GenShareRoundOne(sk *ring.Poly, crp []*ring.Poly, ephSkO
 	// Given a base decomposition w_i (here the CRT decomposition)
 	// computes [-u*a_i + P*s_i + e_i]
 	// where a_i = crp_i
+
+	ekg.ternarySampler.Read(ephSkOut)
+	ekg.ringQP.NTT(ephSkOut, ephSkOut)
+
 	ekg.tmpPoly1.Copy(sk)
 	ekg.ringQP.MulScalarBigint(ekg.tmpPoly1, ekg.ringP.ModulusBigint, ekg.tmpPoly1)
 	ekg.ringQP.InvMForm(ekg.tmpPoly1, ekg.tmpPoly1)
@@ -104,13 +112,10 @@ func (ekg *RKGProtocol) GenShareRoundOne(sk *ring.Poly, crp []*ring.Poly, ephSkO
 			}
 
 			// Handles the case where nb pj does not divides nb qi
-			if index == uint64(ekg.ringQModCount-1) {
+			if index == uint64(ekg.ringQModCount) {
 				break
 			}
 		}
-
-		ekg.ternarySampler.Read(ephSkOut)
-		ekg.ringQP.NTT(ephSkOut, ephSkOut)
 
 		// h = sk*CrtBaseDecompQi + -u*a + e
 		ekg.ringQP.MulCoeffsMontgomeryAndSub(ephSkOut, crp[i], shareOut.value[i][0])
