@@ -426,7 +426,7 @@ func testRotKeyGenConjugate(testCtx *testContext, t *testing.T) {
 		type Party struct {
 			*RTGProtocol
 			s     *ring.Poly
-			share RTGShare
+			share *drlwe.RTGShare
 		}
 
 		pcksParties := make([]*Party, parties)
@@ -447,14 +447,14 @@ func testRotKeyGenConjugate(testCtx *testContext, t *testing.T) {
 		}
 
 		for i, p := range pcksParties {
-			p.GenShare(ckks.Conjugate, 0, p.s, crp, &p.share)
+			p.GenShare(ckks.Conjugate, 0, p.s, crp, p.share)
 			if i > 0 {
 				P0.Aggregate(p.share, P0.share, P0.share)
 			}
 		}
 
 		rotkey := ckks.NewRotationKeys()
-		P0.Finalize(testCtx.params, P0.share, crp, rotkey)
+		P0.GenCKKSRotationKey(testCtx.params, ckks.Conjugate, 0, P0.share, crp, rotkey)
 
 		coeffs, _, ciphertext := newTestVectors(testCtx, encryptorPk0, 1, t)
 
@@ -484,7 +484,7 @@ func testRotKeyGenCols(testCtx *testContext, t *testing.T) {
 		type Party struct {
 			*RTGProtocol
 			s     *ring.Poly
-			share RTGShare
+			share *drlwe.RTGShare
 		}
 
 		pcksParties := make([]*Party, parties)
@@ -514,14 +514,14 @@ func testRotKeyGenCols(testCtx *testContext, t *testing.T) {
 		for k := uint64(1); k < ringQP.N>>1; k <<= 1 {
 
 			for i, p := range pcksParties {
-				p.GenShare(ckks.RotationLeft, k, p.s, crp, &p.share)
+				p.GenShare(ckks.RotationLeft, k, p.s, crp, p.share)
 				if i > 0 {
 					P0.Aggregate(p.share, P0.share, P0.share)
 				}
 			}
 
 			rotkey := ckks.NewRotationKeys()
-			P0.Finalize(testCtx.params, P0.share, crp, rotkey)
+			P0.GenCKKSRotationKey(testCtx.params, ckks.RotationLeft, k, P0.share, crp, rotkey)
 
 			evaluator.RotateColumns(ciphertext, k, rotkey, receiver)
 

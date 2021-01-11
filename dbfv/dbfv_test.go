@@ -413,7 +413,7 @@ func testRotKeyGenRotRows(testCtx *testContext, t *testing.T) {
 		type Party struct {
 			*RTGProtocol
 			s     *ring.Poly
-			share RTGShare
+			share *drlwe.RTGShare
 		}
 
 		pcksParties := make([]*Party, parties)
@@ -434,14 +434,14 @@ func testRotKeyGenRotRows(testCtx *testContext, t *testing.T) {
 		}
 
 		for i, p := range pcksParties {
-			p.GenShare(bfv.RotationRow, 0, p.s, crp, &p.share)
+			p.GenShare(bfv.RotationRow, 0, p.s, crp, p.share)
 			if i > 0 {
 				P0.Aggregate(p.share, P0.share, P0.share)
 			}
 		}
 
 		rotkey := bfv.NewRotationKeys()
-		P0.Finalize(P0.share, crp, rotkey)
+		P0.GenBFVRotationKey(bfv.RotationRow, 0, P0.share, crp, rotkey)
 
 		coeffs, _, ciphertext := newTestVectors(testCtx, encryptorPk0, t)
 
@@ -466,7 +466,7 @@ func testRotKeyGenRotCols(testCtx *testContext, t *testing.T) {
 		type Party struct {
 			*RTGProtocol
 			s     *ring.Poly
-			share RTGShare
+			share *drlwe.RTGShare
 		}
 
 		pcksParties := make([]*Party, parties)
@@ -496,14 +496,14 @@ func testRotKeyGenRotCols(testCtx *testContext, t *testing.T) {
 		for k := uint64(1); k < testCtx.params.N()>>1; k <<= 1 {
 
 			for i, p := range pcksParties {
-				p.GenShare(bfv.RotationLeft, k, p.s, crp, &p.share)
+				p.GenShare(bfv.RotationLeft, k, p.s, crp, p.share)
 				if i > 0 {
 					P0.Aggregate(p.share, P0.share, P0.share)
 				}
 			}
 
 			rotkey := bfv.NewRotationKeys()
-			P0.Finalize(P0.share, crp, rotkey)
+			P0.GenBFVRotationKey(bfv.RotationLeft, k, P0.share, crp, rotkey)
 
 			evaluator.RotateColumns(ciphertext, k, rotkey, receiver)
 
@@ -837,20 +837,20 @@ func testMarshalling(testCtx *testContext, t *testing.T) {
 
 		rotProto := NewRotKGProtocol(testCtx.params)
 		rtgShare := rotProto.AllocateShare()
-		rotProto.GenShare(1, 64, testCtx.sk1.Get(), crp, &rtgShare)
+		rotProto.GenShare(1, 64, testCtx.sk1.Get(), crp, rtgShare)
 
 		data, err := rtgShare.MarshalBinary()
 		if err != nil {
 			log.Fatal("could not marshal RTGshare :", err)
 		}
 
-		resRTGShare := new(RTGShare)
+		resRTGShare := new(drlwe.RTGShare)
 		err = resRTGShare.UnmarshalBinary(data)
 		if err != nil {
 			log.Fatal("Could not unmarshal RTGShare: ", err)
 		}
 
-		if resRTGShare.Type != rtgShare.Type || resRTGShare.K != rtgShare.K || len(resRTGShare.Value) != len(rtgShare.Value) {
+		if len(resRTGShare.Value) != len(rtgShare.Value) {
 			log.Fatal("result after marshalling is not the same as before marshalling for RTGSahre")
 		}
 
